@@ -21,8 +21,37 @@ options xe force_probe=a7a1 enable_psr=0
 
 ---
 
-## 🔋 2. PowerTOP GPU Suspend Override
-PowerTOP's `--auto-tune` service forces the graphics card's PCI power state to `auto`. Waking up the Intel GPU display engine from runtime suspend under the experimental `xe` driver causes display engine hangs. 
+## 🚫 2. Disabled Pop!_OS Services (Power & Boot Optimization)
+To reduce idle CPU usage, save battery, and speed up system boot times, several non-essential system services were disabled.
+
+Run the following commands to disable these background daemons:
+```bash
+# Disable Bluetooth (if unused, saves battery and prevents panel glitching)
+sudo systemctl disable --now bluetooth.service
+
+# Disable Avahi Daemon (network service discovery / local hostname resolution)
+sudo systemctl disable --now avahi-daemon.service avahi-daemon.socket
+
+# Disable CUPS Printing (only disable if you don't print from this machine)
+sudo systemctl disable --now cups.service cups.socket cups-browsed.service cups.path
+
+# Disable ModemManager (handles mobile broadband cards/modems)
+sudo systemctl disable --now ModemManager.service
+
+# Disable Syslog Daemon (logs are already handled by systemd journald)
+sudo systemctl disable --now rsyslog.service
+
+# Disable Speech Dispatcher (text-to-speech engine)
+sudo systemctl disable --now speech-dispatcherd.service
+
+# Disable ACPI Daemon (legacy power events; systemd handles modern ACPI actions)
+sudo systemctl disable --now acpid.service
+```
+
+---
+
+## 🔋 3. PowerTOP GPU Suspend Override
+PowerTOP's `--auto-tune` service forces the graphics card's PCI power state to `auto`. Waking up the Intel GPU display engine from runtime suspend under the experimental `xe` driver causes display engine hangs.
 
 We keep PowerTOP running for other hardware (Wi-Fi, USB, Audio, etc.) but override it for the GPU.
 
@@ -44,7 +73,7 @@ WantedBy=multi-user.target
 
 ---
 
-## ⚡ 3. Persistent Power Profile (Battery Mode & Quiet Fans)
+## ⚡ 4. Persistent Power Profile (Battery Mode & Quiet Fans)
 Pop!_OS defaults to `Balanced` mode on boot. On Raptor Lake-P, Intel Turbo Boost causes aggressive fan spikes. Locking the system to `battery` disables Turbo Boost and caps the CPU frequency range to `10% - 50%`, keeping the CPU cool and silent.
 
 Create `/etc/systemd/system/persist-power-profile.service`:
@@ -70,7 +99,7 @@ sudo systemctl enable --now persist-power-profile.service
 
 ---
 
-## 📂 4. Indexing & File-Watching Exclusions (Home Directory)
+## 📂 5. Indexing & File-Watching Exclusions (Home Directory)
 Since our workspace root is our home folder (`/home/tankisompela`), AI tools (`agy`, `opencode`) scan and watch the entire directory. Caches, configuration folders, downloads, and package directories cause massive CPU spikes and lag.
 
 Create `~/.ignore` and `~/.gitignore` files in the home directory (`~`):
@@ -125,7 +154,7 @@ Update `~/.config/opencode/opencode.json` to expand the watcher ignore list:
 
 ---
 
-## 🛡️ 5. Resource Limits & Home Directory Blocks for AI CLIs
+## 🛡️ 6. Resource Limits & Home Directory Blocks for AI CLIs
 We wrap AI CLI tools (`agy`, `opencode`, `kilo`, and `qwen`) in Zsh functions to:
 1. Prevent them from running in the home directory (displaying a warning and confirmation prompt).
 2. Cap their CPU, RAM, and disk priorities using a `systemd` user scope.
@@ -188,7 +217,7 @@ qwen() {
 
 ---
 
-## 🔒 6. Supply-Chain Security (Malware Protection for npm/npx)
+## 🔒 7. Supply-Chain Security (Malware Protection for npm/npx)
 We installed `npq` and `socket` globally under your active NVM Node version (`v24.17.0`) to check for supply-chain attacks.
 
 ### Automatic Scanning (Socket Wrapper)
@@ -207,8 +236,10 @@ export NPQ_DISABLE_AUTO_CONTINUE=true
 
 ---
 
-## 🌐 7. Google Chrome Hardware Acceleration (Wayland & Vulkan)
-To enable hardware video decoding (VA-API) and Vulkan compositing on your Intel GPU under Wayland (minimizing CPU utilization and fan noise during video playback), open `chrome://flags` and configure:
+## 🌐 8. Google Chrome Hardware Acceleration & Memory Management
+
+### Wayland & Vulkan GPU Acceleration
+To enable hardware video decoding (VA-API) and Vulkan-based compositing on your Intel GPU under Wayland (minimizing CPU utilization and fan noise during video playback), open `chrome://flags` and configure:
 
 * **Override software rendering list (`#ignore-gpu-blocklist`)** -> `Enabled`
 * **Zero-copy rasterizer (`#enable-zero-copy`)** -> `Enabled`
@@ -216,3 +247,8 @@ To enable hardware video decoding (VA-API) and Vulkan compositing on your Intel 
 * **Default ANGLE Vulkan (`#default-angle-vulkan`)** -> `Enabled`
 * **Vulkan from ANGLE (`#vulkan-from-angle`)** -> `Enabled`
 * **Force enable WebGPU interop (`#force-enable-webgpu-interop`)** -> `Enabled`
+
+### Memory Saving (Auto Tab Discard Extension)
+To save memory and keep CPU threads from running background tasks on inactive tabs, we use the **"Auto Tab Discard"** extension:
+* **Extension ID:** `jhnleheckmknfcgijgkadoemagpecfol`
+* **What it does:** Automatically suspends background tabs after a set duration of inactivity, freeing up RAM and keeping the laptop cooler during large browsing sessions.
