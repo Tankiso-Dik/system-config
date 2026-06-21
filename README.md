@@ -213,6 +213,15 @@ qwen() {
         nice -n 19 ionice -c 3 /home/tankisompela/.nvm/versions/node/v24.17.0/bin/qwen "$@"
     fi
 }
+
+fallow() {
+    _check_home_dir || return 1
+    if command -v systemd-run >/dev/null 2>&1; then
+        systemd-run --user --scope --quiet -p CPUWeight=1 -p MemoryMax=800M -p IOWeight=1 /home/tankisompela/.nvm/versions/node/v24.17.0/bin/fallow "$@"
+    else
+        nice -n 19 ionice -c 3 /home/tankisompela/.nvm/versions/node/v24.17.0/bin/fallow "$@"
+    fi
+}
 ```
 
 ---
@@ -252,3 +261,11 @@ To enable hardware video decoding (VA-API) and Vulkan-based compositing on your 
 To save memory and keep CPU threads from running background tasks on inactive tabs, we use the **"Auto Tab Discard"** extension:
 * **Extension ID:** `jhnleheckmknfcgijgkadoemagpecfol`
 * **What it does:** Automatically suspends background tabs after a set duration of inactivity, freeing up RAM and keeping the laptop cooler during large browsing sessions.
+
+---
+
+## 🛠️ 9. Codebase Intelligence (Fallow Audit Integration)
+To enable codebase audits (identifying dead code, circular dependencies, complexity, and duplicate logic blocks), we installed **Fallow** globally in your NVM Node v24.17.0 environment.
+
+We configured the **`fallow-codebase-auditor`** agent skill at `~/.agents/skills/fallow/SKILL.md`. This instructs AI tools (`opencode`, `agy`, `qwen`) to automatically run Fallow checks (e.g., `fallow audit` or `fallow dead-code`) during refactoring and PR reviews to base changes on deterministic static analysis.
+
